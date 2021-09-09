@@ -1,7 +1,7 @@
 package br.com.blizan.msemail.services;
 
 import br.com.blizan.msemail.dtos.ContatoDtoCsv;
-import br.com.blizan.msemail.models.ContatoModel;
+import br.com.blizan.msemail.models.Contato;
 import br.com.blizan.msemail.models.Tag;
 import br.com.blizan.msemail.repositories.ContatoRepository;
 import br.com.blizan.msemail.repositories.TagRepository;
@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,17 +25,17 @@ public class ImportaContatosService {
     @Autowired
     TagRepository tagRepository;
 
-    public List<ContatoModel> converteContatosCsvEmModel(Reader reader){
+    public List<Contato> converteContatosCsvEmModel(Reader reader){
         List<ContatoDtoCsv> contatosCsv = new CsvToBeanBuilder(reader)
                 .withType(ContatoDtoCsv.class)
                 .build()
                 .parse();
 
-        List<ContatoModel> contatos = new ArrayList<ContatoModel>();
+        List<Contato> contatos = new ArrayList<Contato>();
         for (ContatoDtoCsv contatoCsv: contatosCsv) {
-            ContatoModel contatoModel = new ContatoModel();
-            BeanUtils.copyProperties(contatoCsv, contatoModel);
-            contatos.add(contatoModel);
+            Contato contato = new Contato();
+            BeanUtils.copyProperties(contatoCsv, contato);
+            contatos.add(contato);
         }
 
         return contatos;
@@ -57,22 +55,22 @@ public class ImportaContatosService {
         return createdTags;
     }
 
-    public void criaContatos(List<ContatoModel> contatos, List<Tag> tags){
-        for(ContatoModel contatoModel : contatos){
-            ContatoModel contatoModelExist = contatoRepository.findByEmail(contatoModel.getEmail());
-            if(contatoModelExist != null){
-                contatoModelExist.setTags(Stream.of(contatoModelExist.getTags(), tags).flatMap(List::stream).collect(Collectors.toList()));
-                contatoRepository.save(contatoModelExist);
+    public void criaContatos(List<Contato> contatos, List<Tag> tags){
+        for(Contato contato : contatos){
+            Contato contatoExist = contatoRepository.findByEmail(contato.getEmail());
+            if(contatoExist != null){
+                contatoExist.setTags(Stream.of(contatoExist.getTags(), tags).flatMap(List::stream).collect(Collectors.toList()));
+                contatoRepository.save(contatoExist);
             }else{
-                contatoModel.setTags(tags);
-                contatoRepository.save(contatoModel);
+                contato.setTags(tags);
+                contatoRepository.save(contato);
             }
         }
     }
 
     public void importaCsv(Reader reader, List<Tag> tags){
-        List<Tag> createdTags = criaTags(tags);
-        List<ContatoModel> contatos = converteContatosCsvEmModel(reader);
-        criaContatos(contatos, createdTags);
+        List<Tag> tagsCriadas = criaTags(tags);
+        List<Contato> contatos = converteContatosCsvEmModel(reader);
+        criaContatos(contatos, tagsCriadas);
     }
 }

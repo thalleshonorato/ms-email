@@ -7,22 +7,20 @@ import org.springframework.validation.annotation.Validated;
 import javax.persistence.Column;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 public class EmailDto {
 
     @NotBlank
-    private String ownerReg;
-    @NotBlank
     @Email
     private String emailFrom;
-    @Email
-    @NotBlank
-    private String emailTo;
     @NotBlank
     private String subject;
     @NotBlank
     private String text;
+
+    private String[] tags;
 
 }

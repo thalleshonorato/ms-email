@@ -2,15 +2,14 @@ package br.com.blizan.msemail.models;
 
 import br.com.blizan.msemail.enums.StatusTag;
 import lombok.Data;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.persistence.*;
+import javax.transaction.Transactional;
 import java.util.List;
 
 @Data
 @Entity
-@Table(name = "tags")
+@Table(name = "TBL_TAGS")
 public class Tag {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -18,6 +17,24 @@ public class Tag {
     @Column(unique=true)
     private String title;
     private StatusTag statusTag;
-    @ManyToMany
-    private List<ContatoModel> contatos;
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    private List<Contato> contatos;
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    private List<Mensagem> mensagens;
+
+    public Tag() {
+    }
+    public Tag(String title) {
+        this.title = title;
+    }
+
+    @Transactional
+    public List<Mensagem> getMensagens() {
+        return mensagens;
+    }
+
+    @Transactional
+    public List<Contato> getContatos() {
+        return contatos;
+    }
 }

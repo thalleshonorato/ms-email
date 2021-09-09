@@ -1,8 +1,10 @@
 package br.com.blizan.msemail.services;
 
 import br.com.blizan.msemail.models.Contato;
+import br.com.blizan.msemail.models.Mensagem;
 import br.com.blizan.msemail.models.Tag;
 import br.com.blizan.msemail.repositories.ContatoRepository;
+import br.com.blizan.msemail.repositories.MensagemRepository;
 import br.com.blizan.msemail.repositories.TagRepository;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -11,28 +13,33 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.Arrays;
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.beans.HasPropertyWithValue.hasProperty;
 import static org.junit.Assert.assertEquals;
 
-
-import java.io.*;
-import java.util.Arrays;
-import java.util.List;
-
 @RunWith(SpringRunner.class)
 @DataJpaTest
-public class ImportaContatosServiceTest {
+@ContextConfiguration
+public class MensagemServiceTest {
 
     @TestConfiguration
-    static class ImportaContatosServiceTestConfiguration{
+    static class EnviaEmailServiceTestConfiguration{
+
+        @Bean
+        public MensagemService enviaEmailService(){
+            return new MensagemService();
+        }
 
         @Bean
         public ImportaContatosService importaContatosService(){
@@ -41,17 +48,23 @@ public class ImportaContatosServiceTest {
     }
 
     @Autowired
-    private ImportaContatosService importaContatosService;
+    private MensagemService mensagemService;
+
+    @Autowired
+    private MensagemRepository mensagemRepository;
+
+    @Autowired
+    private TagRepository tagRepository;
 
     @Autowired
     private ContatoRepository contatoRepository;
 
     @Autowired
-    private TagRepository tagRepository;
+    private ImportaContatosService importaContatosService;
 
-    @DisplayName("Shoud be able to import new contacts with csv file")
+    @DisplayName("Capaz de cadastrar a mensagem a ser enviada")
     @Test
-    public void importaListaDeContatosEmCsv() throws FileNotFoundException {
+    public void cadastraMensagem() throws FileNotFoundException {
         Tag tag = new Tag();
         tag.setTitle("Nova Campanha");
         Tag tag2 = new Tag();
@@ -71,44 +84,21 @@ public class ImportaContatosServiceTest {
                 hasProperty("email", is("thallesrv2@gmail.com")),
                 hasProperty("email", is("thallesrv3@gmail.com"))
         ));
-    }
 
-    @DisplayName("Verifica se já existe uma tag cadastrada")
-    @Test
-    public void verificaSeATagJaFoiCadastrada() throws FileNotFoundException {
-        Tag tag = new Tag();
-        tag.setTitle("Nova Campanha");
-        Tag tag2 = new Tag();
-        tag2.setTitle("Campanha de marketing 2");
+        Mensagem mensagem = new Mensagem("thallesrv1@gmail.com", "thallesrv1@gmail.com", "Teste email", "testando");
 
-        importaContatosService.importaCsv(new FileReader(ResourceUtils.getFile("classpath:contatosCsv.csv")), Arrays.asList(tag, tag2));
-        List<Tag> createdTags = tagRepository.findAll();
-        assertThat(createdTags, hasItems(
-                hasProperty("title", is(tag.getTitle())),
-                hasProperty("title", is(tag2.getTitle()))
+        mensagemService.run(mensagem, createdTags);
+
+        List<Mensagem> mensagens = mensagemRepository.findAll();
+
+        assertEquals(mensagens.size(), contatoRepository.findAll().size());
+
+        assertThat(mensagens, hasItems(
+                hasProperty("emailFrom", is("thallesrv1@gmail.com")),
+                hasProperty("subject", is("Teste email"))
         ));
-    }
 
-    @DisplayName("Verifica se já existe um usuario cadastrado")
-    @Test
-    public void verificaSeUsuarioJaFoiCadastrado() throws FileNotFoundException {
-        Tag tag = new Tag();
-        tag.setTitle("Nova Campanha");
-        Tag tag2 = new Tag();
-        tag2.setTitle("Campanha de marketing");
-
-        importaContatosService.importaCsv(new FileReader(ResourceUtils.getFile("classpath:contatosCsv.csv")), Arrays.asList(tag, tag2));
-
-        Tag tag3 = new Tag();
-        tag3.setTitle("Nova Tag");
-
-        importaContatosService.importaCsv(new FileReader(ResourceUtils.getFile("classpath:contatosCsv2.csv")), Arrays.asList(tag3));
-
-        List<Contato> createdContacts = contatoRepository.findAllByEmailIn(Arrays.asList("thallesrv1@gmail.com"));
-
-        assertEquals(createdContacts.size(), 1);
-        assertThat(createdContacts.get(0).getTags(), hasItems(
-                hasProperty("title", is("Nova Tag")),
+        assertThat(mensagens.get(0).getTags(), hasItems(
                 hasProperty("title", is("Nova Campanha")),
                 hasProperty("title", is("Campanha de marketing"))
         ));
